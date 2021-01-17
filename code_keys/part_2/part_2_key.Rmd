@@ -1,0 +1,106 @@
+---
+title: 'Part 2: Customizing RMarkdown'
+author: "Allison Horst"
+date: "1/17/2021"
+output: 
+  html_document:
+    css: "style.css"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+We've been using default settings to do most of our work in RMarkdown. In this part of the lab, we'll learn a few different ways to spruce up our knitted documents. 
+
+### Step 1: Create a new .Rmd & css file 
+
+- In your project, create a new folder for Part 2. Add a new .Rmd, deleting everything below the first code chunk. Save (e.g. as part_2.Rmd).  
+
+- Create a new CSS file (in RStudio: File > New file > CSS file), also saved in the same folder alongside the .Rmd you just created. 
+
+- In the YAML of your .Rmd, add `css: style.css` to the `output` section, which should look like this: 
+
+```
+title: 'Part 2: Customizing RMarkdown'
+author: "Allison Horst"
+date: "1/17/2021"
+output: 
+  html_document:
+    css: "style.css"
+```
+
+Note the `:` added after `html_document`. 
+
+This lets RMarkdown know that it should pull style specifications from the `style.css` file when it renders your final html. 
+
+### Step 2: Get & use google fonts
+
+Go to https://fonts.google.com/ to check out some fonts. Here we'll just pick two (I don't recommend using more than 2 fonts for any document, though font / weight can vary). For the sake of this lab, I recommend picking to weird and very different fonts so it's clear where they show up in your knitted doc. 
+
+- Click on your first font choice. 
+- Click on 'Select this style' next to the style you want.
+- Go back to Google fonts home. 
+- Clik on your second font choice.
+- Click on 'Select this style' next to the style you want. 
+- In the 'Use on the web' box that appears, select the radio button for `@import`
+- Copy the text between the two <style> </style> tags (e.g starting with @import and ending with a semi-colon). My copied import information, for example, looks like this (because I had selected the Anton and Barlow fonts):
+
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow&display=swap');
+
+**Note:** You can also copy this line for each font separately and include them in your css file. 
+
+**Paste the copied @import code into your CSS file. Save.** 
+
+#### Customize your .Rmd
+
+In your css file, add the following: 
+
+This will update the style of a level-2 header: 
+
+```
+h2 {
+    font-family: "Anton";
+    font-size: 30px;
+    color: purple;
+}
+```
+
+## So this should have that formatting...
+
+Or to update a level 3 header: 
+```
+h3 {
+    font-family: "Anton";
+    font-size: 25px;
+    color: magenta;
+}
+```
+
+### Which should have those aesthetics
+
+And to change the body text font, add something like this to css: 
+
+```
+body {
+    font-family: "Barlow";
+    font-size: 18px;
+    color: teal;
+}
+```
+
+What about some other aesthetics? 
+
+Try adding (to the `body` code) a condition to update the `background-color`. 
+
+What else can you customize? EVERYTHING. Check out all kinds of things you can customize here: https://www.w3schools.com/css/
+
+## Finding elements you might want to change
+
+Want to know which element you need to change, but unsure what it's called? Open your knitted HTML in your browser, right click and choose 'Inspect Element.' 
+
+This will give you a good idea of what the css element is currently called, which you can override in your own CSS! Just try out a bunch of stuff (e.g. changing colors & fonts in code chunks, update static & hover color of hyperlinks, etc.). 
+
+The best way to learn CSS is to try weird things in CSS. Have fun! 
+## End Part 2
+

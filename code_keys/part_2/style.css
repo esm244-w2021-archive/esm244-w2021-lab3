@@ -1,0 +1,27 @@
+/* My custom css */
+
+/* Fonts */
+
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Barlow&display=swap');
+
+
+/* Customize some fonts */
+
+h2 {
+    font-family: "Anton";
+    font-size: 30px;
+    color: purple;
+}
+
+h3 {
+    font-family: "Anton";
+    font-size: 25px;
+    color: magenta;
+}
+
+body {
+    font-family: "Barlow";
+    font-size: 18px;
+    color: teal;
+    background-color: gainsboro;
+}

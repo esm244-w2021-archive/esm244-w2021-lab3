@@ -1,0 +1,169 @@
+---
+title: 'Part 1: Binomial logistic regression'
+author: "Allison Horst"
+date: "1/17/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+library(broom)
+library(jtools)
+```
+
+### Intro
+
+In lectures this week, we are learning about logistic regression - where based on predictor variables, we can estimate the probability of different discrete outcomes for a categorical variable. If there are only two mutually exclusive outcomes, we might use *binary logistic regression*, and for > 2 mutually exclusive outcomes we might use *multinomial logistic regression.* If the dependent variable is *ordinal* (discrete levels with meaningful order), we might use *ordinal logistic regression*, which we'll get to next week. 
+
+Here, we will use *binary logistic regression* to find probabilities that a penguin is species Chinstrap or Adelie, based on flipper length, body mass, and sex. 
+
+### 1. Binary logistic regression
+
+#### a. Exploration with `ggpairs`
+
+First, let's remind ourselves of the penguins data. We will only consider variables species, bill depth, bill length, body mass, flipper length and sex. 
+
+```{r}
+penguins %>% 
+  select(species, bill_length_mm:sex) %>% 
+  ggpairs(aes(color = species))
+```
+
+We want to explore the relationship between bill length, depth, mass, flipper length, and sex (those will be our explanatory variables) and penguin species (that's our dependent variable). 
+
+To start, we'll just choose two species (those that are *most similar* across these variables to make it interesting), Adelie and Chinstrap penguins. **Remember:** you could explore this with a PCA biplot! 
+
+#### b. Make subset with Adelie and Chinstrap penguins
+
+```{r}
+adelie_chinstrap <- penguins %>% 
+  filter(species %in% c("Adelie", "Chinstrap")) %>% 
+  mutate(species = fct_drop(species)) # This will drop a factor level that doesn't appear (otherwise Gentoo will still show up as a factor level, even though there are no remaining observations for Gentoo penguins...)
+
+# Check the levels (note here Adelie is before Chinstrap, so Adelie will be 0, Chinstrap will be 1)
+levels(adelie_chinstrap$species)
+```
+
+#### c. Let's just check out trends across variables for those two species
+
+```{r}
+ggplot(data = adelie_chinstrap, aes(x = body_mass_g, y = flipper_length_mm)) +
+  geom_point(aes(color = sex)) +
+  facet_wrap(~species)
+```
+
+#### d. Binary logistic regression
+
+Let's try with three predictor variables: penguin body mass, flipper length, and sex.
+```{r}
+adelie_chinstrap_blr <- glm(species ~ body_mass_g + flipper_length_mm + sex, 
+                            data = adelie_chinstrap, 
+                            family = "binomial")
+```
+
+Look at the model: 
+```{r}
+adelie_chinstrap_blr
+
+summary(adelie_chinstrap_blr)
+
+# Get a tidy version w/ broom: 
+blr_tidy <- broom::tidy(adelie_chinstrap_blr)
+```
+How can we start thinking about this? 
+
+- These are coefficients for the log-linear model (e.g. these are coefficients for the predictor variables that relate to the *log odds* of the "Chinstrap" outcome).
+
+- The null hypothesis for coefficients is that they = 0
+
+- The coefficient for body mass, `r round(blr_tidy[2,2], 2)`, indicates that on average we expect the log odds of a penguin being a Chinstrap (remember, that's the '1' outcome) decreases by `r round(blr_tidy[2,2], 2)` for each 1 g increase in penguin body mass (see `summary(blr_tidy)` - this coefficient is not significant). 
+  
+Does this align with the mass comparisons for Chinstraps & Adelies we see? 
+```{r}
+ggplot(data = adelie_chinstrap, aes(x = species, y = body_mass_g)) +
+  geom_jitter(aes(color = sex))
+```
+
+- The coefficient for flipper length, `r round(blr_tidy[2,2], 2)`, indicates that on average we expect the log odds of a penguin being a Chinstrap (remember, that's the '1' outcome) increases by `r round(blr_tidy[3,2], 2)` for each 1 mm increase in penguin flipper length (see `summary(blr_tidy)` - this coefficient is significant). 
+
+Does this align with the flipper comparisons for Chinstraps & Adelies we see? 
+
+```{r}
+ggplot(data = adelie_chinstrap, aes(x = species, y = flipper_length_mm)) +
+  geom_jitter(aes(color = sex))
+```
+- The coefficient for sex, `r round(blr_tidy[4,2], 2)`, indicates that on average we expect the log odds of a penguin being a Chinstrap (remember, that's the '1' outcome) decreases by `r round(blr_tidy[4,2], 2)` if the penguin is Male, compared to Female (this is a weird example -- but you can imagine relevant interpretations for other scenarios e.g. "The odds of supporting a bill for conservation (Y/N) increases if the individual identifies as an Environmentalist, compared to those who identify as Not and Environmentalist)."
+
+But log odds are challenging to interpret. Let's find actual *probabilities* associated with a penguin being Adelie or Chinstrap, based on the selected variables and the model outcome. 
+
+Adding `type.predict = "response"` here converts the log odds (link), the default reported, to the probability of being Chinstrap for each observation. 
+```{r}
+blr_fitted <- adelie_chinstrap_blr %>% 
+  broom::augment(type.predict = "response")
+```
+
+Look at the outcome data frame. 
+
+That shows us the probability (in the `.fitted` column) of a penguin being a Chinstrap based on the three variables `body_mass_g`, `flipper_length_mm`, and `sex`. Take a moment to look through the probabilities. Are there some that have a high probability of being a Chinstrap, but are actually Adelies? YES (e.g. Row 91 shows a probability of 0.78 of being a Chinstrap, based on this model...). But *most* of the actual Adelies in the dataset have a higher probability of being an Adelie based on the model (probability of a Chinstrap < 0.5). 
+
+A number of the actual Chinstraps (if we weren't looking at the actual observation) have, based on the model, a higher probability of being an Adelie by classification. This demonstrates why, in Machine Learning, we need a training dataset (which we'd use to create the model), then a totally separate test dataset to see how successfully it classifies the outcome (e.g. penguin species here). 
+
+Let's do a couple of quick visualizations, with flipper length (the only significant coefficient) on the x-axis and probability of being a Chinstrap on the y-axis:
+```{r}
+ggplot(data = blr_fitted, aes(x = flipper_length_mm, y = .fitted)) +
+  geom_point(aes(color = sex)) +
+  geom_smooth(aes(color = sex), se = FALSE) +
+  labs(x = "Flipper length (mm)",
+       y = "Probability of outcome Chinstrap")
+```
+
+#### Visualization of p(Chinstrap) by variable
+
+The `jtools::effect_plot()` function provides some quick model plotting. Note: for more customized visualization of model predictions, you may want to create a new "test" data frame of theoretical values, then use the `predict()` function to append predicted probabilities before plotting in `ggplot()`.
+
+```{r}
+# For flipper length:
+effect_plot(adelie_chinstrap_blr, 
+            pred = flipper_length_mm, 
+            interval = TRUE, 
+            y.label = "Probability of 'Chinstrap'")
+
+# For body mass:
+effect_plot(adelie_chinstrap_blr, 
+            pred = body_mass_g, 
+            interval = TRUE, 
+            y.label = "Probability of 'Chinstrap'")
+```
+
+#### Predictions for new values with `predict()`
+
+What is the probability that a female penguin weight 3410 g with a flipper length of 192 mm will be Chinstrap?
+
+```{r}
+ex_1 <- predict(adelie_chinstrap_blr, 
+                data.frame(sex = "female", 
+                body_mass_g = 3410, 
+                flipper_length_mm = 192),
+                type = "response")
+
+# Based on the model, the probability that this penguin is a Chinstrap is 0.4.
+```
+
+You can also feed in a new data frame, with multiple penguin observations, to get model probability estimates for more than one penguin: 
+
+```{r}
+new_df <- data.frame(
+  sex = c("male", "male", "female"),
+  body_mass_g = c(3298, 4100, 3600),
+  flipper_length_mm = c(212, 175, 180)
+)
+
+ex_2 <- predict(adelie_chinstrap_blr,
+                new_df,
+                type = "response")
+```
+
+
