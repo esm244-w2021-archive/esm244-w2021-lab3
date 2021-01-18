@@ -1,2 +1,3 @@
-# esm244-w2021-lab3
-Lab 3: Binary &amp; multinomial logistic regression, more wrangling tips, Shiny options
+# ESM 244 Week 3 Lab Materials
+
+Lab 3: Binary &amp; multinomial logistic regression, customizing RMarkdown with CSS, Shiny with navbarPage and CSS
