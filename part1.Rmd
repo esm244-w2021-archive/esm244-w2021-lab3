@@ -1,0 +1,125 @@
+---
+title: "esm244-w2021-lab3 part 1"
+author: "Kelsie Fronheiser"
+date: "2/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(palmerpenguins)
+library(GGally)
+library(broom)
+library(jtools)
+```
+
+```{r}
+penguins %>% 
+  select(species, bill_length_mm:sex) %>% 
+  ggpairs(aes(color = species))
+```
+
+We are going to be looking at Adelies and Chinstraps because they are so similar in size
+```{r}
+adelie_chinstrap <- penguins %>% 
+  filter(species %in% c ("Adelie", "Chinstrap")) %>% 
+  mutate(species = fct_drop(species))
+```
+
+But Gentoo factor level is still within the data set so mutate(new name = fct_drop(existing species level)) - drops that factor
+Check factor by typing "levels(adelie_chinstrap$species)" into console
+Pay attention to order factors show up in
+
+```{r}
+#Data visualization
+
+ggplot(data = adelie_chinstrap, aes(x = body_mass_g, y = flipper_length_mm)) +
+  geom_point(aes(color = sex)) +
+facet_wrap(~species)
+```
+
+Can we capture the difference between the two?
+
+Binomial logistic regression: classifying factors into "bins"
+
+using variables: body mass, flipper length, penguin sex
+```{r}
+adelie_chinstrap_blr <- glm(species ~ body_mass_g + flipper_length_mm + sex,
+                            data = adelie_chinstrap,
+                            family = "binomial")
+```
+
+Take a look at outcomes
+```{r}
+adelie_chinstrap_blr
+
+summary(adelie_chinstrap_blr)
+```
+What this means:
+levels shows us that adelie is coded as 0 (first) and chinstrap is 1, so that meansin the log linear expression the left hand side is probability of chinstrap (log odds of non-zero level)
+
+Body mass -8.576e_4: Expect on avg that as body mass increases the chances of being chinstrap may be going down
+
+Flipper length 1.778e-1: Epect on avg that increase in flipper length the 
+odds of it being a chinstrap penguin is increasing
+
+```{r}
+ggplot(data = adelie_chinstrap, aes(x = species, y = flipper_length_mm)) +
+  geom_jitter(aes(color = sex))
+```
+
+
+Turning log probabilities into probabilities: broom function
+What are the actual probabilities of being chinstrap penguin for each of the existing observations in our adelie_chinstrap data?
+```{r}
+blr_fitted <- adelie_chinstrap_blr %>% 
+  broom::augment(type.predict = "response")
+```
+
+This adds column to dataset; the "fitted" column is the probability of being chinstrap according to each indivdual's variables (body mass, flipper length, sex)
+
+You can see the probabilities are higher when the species is ineed chinstrap but still mistakes (some chinstraps low prob, some adelie high prob); how often would a penguin be correctly identified using this model?
+
+Plotting fitted probabilities:
+```{r}
+ggplot(data = blr_fitted, aes(x = flipper_length_mm, y = .fitted)) +
+  geom_point(aes(color = sex, pch = species)) +
+  geom_smooth(aes(color = sex), se = FALSE) +
+  labs(x = "Flipper length (mm)",
+       y = "Probability of outcome Chinstrap")
+```
+
+As flipper length increases for both male and female penguins the prob of that penguin being Chinstrap is increasing
+
+Effect plot function from jtools: provides us with quick overview of what our model looks like based on different variables (how prob changes depedent on variable)
+```{r}
+effect_plot(adelie_chinstrap_blr,
+            pred = flipper_length_mm,
+            y.label = "Probability of Chinstrap",
+            interval = TRUE)
+
+
+effect_plot(adelie_chinstrap_blr,
+            pred = body_mass_g,
+            y.label = "Probability of Chinstrap",
+            interval = TRUE)
+```
+
+
+
+What's the probability that a female penguin weighing 3410g with a flipper length of 192mm is a Chinstrap?
+```{r}
+ex_1 <- predict(adelie_chinstrap_blr,
+                data.frame(sex = "female",
+                           body_mass_g = 3410,
+                           flipper_length_mm = 192),
+                type = "response")
+
+ex_1
+
+#but this is in log odds so add last line type = "response" to get in normal probability 
+```
+
+

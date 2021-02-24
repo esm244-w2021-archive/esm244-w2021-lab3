@@ -1,0 +1,27 @@
+/* Import Google fonts */
+
+@import url('https://fonts.googleapis.com/css2?family=Lemonada&family=Sriracha&display=swap');
+
+/* Update headers */
+
+h2 {
+  font-family: "Sriracha";
+  font-size: 40px;
+  color: purple;
+}
+
+h3 {
+  font-family:Lemonada;
+  font-size: 25px;
+  color: magenta;
+}
+
+body {
+  font-family: Lemonada;
+  font-size: 18px;
+  color: teal;
+  background-color: yellow;
+}
+
+
+
